@@ -1,7 +1,7 @@
 # Ethereum LRT protocols points checker
  Small script to gather all your Ethereum LRT points from different wallets. 
  
- Currently, only [ether.fi](https://app.ether.fi/portfolio), [renzo](https://app.renzoprotocol.com/portfolio), [puffer](https://quest.puffer.fi/), [swell](https://app.swellnetwork.io/) and [kelp](https://kelpdao.xyz/dashboard/) are supported
+ Currently, only [ether.fi](https://app.ether.fi/portfolio), [renzo](https://app.renzoprotocol.com/portfolio), [puffer](https://quest.puffer.fi/), [swell](https://app.swellnetwork.io/), [zircuit](https://stake.zircuit.com/) and [kelp](https://kelpdao.xyz/dashboard/) are supported
 
  __Ether.fi points are not 100% accurate, their API is so strange, I'm getting like 10% less than the actual amount__
 
@@ -25,7 +25,7 @@ python main.py
 
 # 📊 Output example
 
-<img width="316" alt="Screenshot_96" src="https://github.com/danijcom/lrt-points-checker/assets/46953160/e6e37011-2496-4ed4-bce5-d06e0a591f23">
+<img width="305" alt="Screenshot_97" src="https://github.com/danijcom/lrt-points-checker/assets/46953160/3704d1cc-f4f7-4098-ba83-55ecc7d4b784">
 
 
 * A bit inspired by [this](https://github.com/Jcomper/etherfidailycollector) script
