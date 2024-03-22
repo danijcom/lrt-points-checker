@@ -1,3 +1,4 @@
+import os.path
 import traceback
 import asyncio
 import aiohttp
@@ -483,6 +484,13 @@ def read_addresses():
 
 
 if __name__ == "__main__":
+    if not os.path.isfile("proxies.txt"):
+        print("⛔️ File 'proxies.txt' not found")
+        exit()
+    if not os.path.isfile("addresses.txt"):
+        print("⛔️ File 'addresses.txt' not found")
+        exit()
+
     proxies = read_proxies()
     addresses = read_addresses()
 
