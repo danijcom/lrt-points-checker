@@ -25,4 +25,4 @@ python main.py
 <img width="306" alt="Screenshot_95" src="https://github.com/danijcom/lrt-points-checker/assets/46953160/8bc6aa7e-5c1a-473a-be40-5ed9dd24d603">
 
 
-* A bit inspired by [this](https://github.com/Jcomper/etherfidailycollector)https://github.com/Jcomper/etherfidailycollector script
+* A bit inspired by [this](https://github.com/Jcomper/etherfidailycollector) script
