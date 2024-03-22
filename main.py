@@ -11,11 +11,11 @@ renzo_headers = {
 }
 
 
-async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str):
+async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
     try:
         async with session.get(
             f"https://app.renzoprotocol.com/api/points/{address}",
-            proxy=f"http://{proxy}",
+            proxy=f"http://{proxy}" if proxy else None,
             headers=renzo_headers,
             ssl=False,
             timeout=15,
@@ -42,11 +42,11 @@ etherfi_headers = {
 }
 
 
-async def etherfi_points(session: aiohttp.ClientSession, address: str, proxy: str):
+async def etherfi_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
     try:
         async with session.get(
             f"https://app.ether.fi/api/portfolio/v2/{address}",
-            proxy=f"http://{proxy}",
+            proxy=f"http://{proxy}" if proxy else None,
             headers=etherfi_headers,
             ssl=False,
             timeout=15,
@@ -99,13 +99,13 @@ puffer_headers = {
 }
 
 
-async def puffer_points(session: aiohttp.ClientSession, address: str, proxy: str):
+async def puffer_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
     try:
         headers = puffer_headers.copy()
         headers["address"] = address
         async with session.get(
             f"https://quest-api.puffer.fi/puffer-quest/chapter3/deposit_info",
-            proxy=f"http://{proxy}",
+            proxy=f"http://{proxy}" if proxy else None,
             headers=headers,
             ssl=False,
             timeout=15,
@@ -157,11 +157,11 @@ kelp_headers = {
 }
 
 
-async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str):
+async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
     try:
         async with session.get(
             f"https://common.kelpdao.xyz/km-el-points/user/{address}",
-            proxy=f"http://{proxy}",
+            proxy=f"http://{proxy}" if proxy else None,
             headers=kelp_headers,
             ssl=False,
             timeout=15,
@@ -183,7 +183,7 @@ async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str):
         return False, address, f"Exception: {traceback.format_exc()}"
 
 
-async def get_points(addresses: list, proxies: list):
+async def get_points(addresses: list, proxies: list, without_proxies=False):
     async with aiohttp.ClientSession() as session:
         renzo_tasks = []
         etherfi_tasks = []
@@ -191,10 +191,10 @@ async def get_points(addresses: list, proxies: list):
         kelp_tasks = []
 
         for i in range(len(addresses)):
-            renzo_tasks.append(renzo_points(session, addresses[i], proxies[i]))
-            etherfi_tasks.append(etherfi_points(session, addresses[i], proxies[i]))
-            puffer_tasks.append(puffer_points(session, addresses[i], proxies[i]))
-            kelp_tasks.append(kelp_points(session, addresses[i], proxies[i]))
+            renzo_tasks.append(renzo_points(session, addresses[i], proxies[i] if not without_proxies else None))
+            etherfi_tasks.append(etherfi_points(session, addresses[i], proxies[i] if not without_proxies else None))
+            puffer_tasks.append(puffer_points(session, addresses[i], proxies[i] if not without_proxies else None))
+            kelp_tasks.append(kelp_points(session, addresses[i], proxies[i] if not without_proxies else None))
 
         renzo_results = await asyncio.gather(*renzo_tasks)
         etherfi_results = await asyncio.gather(*etherfi_tasks)
@@ -204,9 +204,9 @@ async def get_points(addresses: list, proxies: list):
         return renzo_results, etherfi_results, puffer_results, kelp_results
 
 
-async def print_points(addresses: list, proxies: list):
+async def print_points(addresses: list, proxies: list, without_proxies=False):
     renzo_results, etherfi_results, puffer_results, kelp_results = await get_points(
-        addresses, proxies
+        addresses, proxies, without_proxies
     )
 
     total_renzo_points = 0
@@ -321,7 +321,7 @@ if __name__ == "__main__":
             print("❌ Aborted")
         else:
             print("📶 Loaded {} addresses".format(len(addresses)))
-            asyncio.run(print_points(addresses, proxies))
+            asyncio.run(print_points(addresses, proxies, without_proxies=True))
     else:
         print(
             "📶 Loaded {} proxies and {} addresses".format(len(proxies), len(addresses))
