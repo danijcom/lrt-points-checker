@@ -330,12 +330,20 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
                 )
             )
 
+        print("🔄 Getting points:", end="")
+
         renzo_results = await asyncio.gather(*renzo_tasks)
+        print(" Renzo", end="")
         etherfi_results = await asyncio.gather(*etherfi_tasks)
+        print(" EtherFi", end="")
         puffer_results = await asyncio.gather(*puffer_tasks)
+        print(" Puffer", end="")
         kelp_results = await asyncio.gather(*kelp_tasks)
+        print(" Kelp", end="")
         swell_results = await asyncio.gather(*swell_tasks)
+        print(" Swell", end="")
         zircuit_results = await asyncio.gather(*zircuit_tasks)
+        print(" Zircuit")
 
         return (
             renzo_results,
@@ -486,28 +494,31 @@ def read_addresses():
 if __name__ == "__main__":
     if not os.path.isfile("proxies.txt"):
         print("⛔️ File 'proxies.txt' not found")
-        exit()
-    if not os.path.isfile("addresses.txt"):
+    elif not os.path.isfile("addresses.txt"):
         print("⛔️ File 'addresses.txt' not found")
-        exit()
-
-    proxies = read_proxies()
-    addresses = read_addresses()
-
-    if len(addresses) > len(proxies):
-        print(
-            "⛔️ Not enough proxies ({}) for all addresses ({})".format(
-                len(proxies), len(addresses)
-            )
-        )
-        result = input("❔ Continue without proxies? (y/n): ")
-        if result.lower() != "y":
-            print("❌ Aborted")
-        else:
-            print("📶 Loaded {} addresses".format(len(addresses)))
-            asyncio.run(print_points(addresses, proxies, without_proxies=True))
     else:
-        print(
-            "📶 Loaded {} proxies and {} addresses".format(len(proxies), len(addresses))
-        )
-        asyncio.run(print_points(addresses, proxies))
+        proxies = read_proxies()
+        addresses = read_addresses()
+
+        if len(addresses) > len(proxies):
+            print(
+                "⛔️ Not enough proxies ({}) for all addresses ({})".format(
+                    len(proxies), len(addresses)
+                )
+            )
+            result = input("❔ Continue without proxies? (y/n): ")
+            if result.lower() != "y":
+                print("❌ Aborted")
+            else:
+                print("📶 Loaded {} addresses".format(len(addresses)))
+                asyncio.run(print_points(addresses, proxies, without_proxies=True))
+        else:
+            print(
+                "📶 Loaded {} proxies and {} addresses".format(
+                    len(proxies), len(addresses)
+                )
+            )
+            asyncio.run(print_points(addresses, proxies))
+
+    print()
+    input("❔ Press ENTER key to exit")
