@@ -42,7 +42,9 @@ etherfi_headers = {
 }
 
 
-async def etherfi_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
+async def etherfi_points(
+    session: aiohttp.ClientSession, address: str, proxy: str | None
+):
     try:
         async with session.get(
             f"https://app.ether.fi/api/portfolio/v2/{address}",
@@ -99,7 +101,9 @@ puffer_headers = {
 }
 
 
-async def puffer_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
+async def puffer_points(
+    session: aiohttp.ClientSession, address: str, proxy: str | None
+):
     try:
         headers = puffer_headers.copy()
         headers["address"] = address
@@ -183,36 +187,127 @@ async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str |
         return False, address, f"Exception: {traceback.format_exc()}"
 
 
+swell_headers = {
+    "authority": "v3-lrt.svc.swellnetwork.io",
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ru-RU;q=0.8,ru;q=0.7,uk;q=0.6,hr;q=0.5,fr;q=0.4",
+    "origin": "https://app.swellnetwork.io",
+    "referer": "https://app.swellnetwork.io/portfolio",
+    "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+}
+
+
+async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
+    try:
+        loyality_points = 0
+        eigenlayer_points = 0
+
+        async with session.get(
+            f"https://v3.svc.swellnetwork.io/swell.v3.VoyageService/VoyageUser?connect=v1&encoding=json&message=%7B%22address%22%3A%22{address}%22%7D",
+            proxy=f"http://{proxy}" if proxy else None,
+            headers=swell_headers,
+            ssl=False,
+            timeout=15,
+        ) as response:
+            if response.status == 200:
+                response = await response.json()
+                if "points" in response:
+                    loyality_points = response["points"]
+            else:
+                return False, address, f"Status code is {response.status}"
+
+        async with session.get(
+            f"https://v3-lrt.svc.swellnetwork.io/swell.v3.EigenPointsService/EigenPointsUser?connect=v1&encoding=json&message=%7B%22address%22%3A%22{address}%22%7D",
+            proxy=f"http://{proxy}" if proxy else None,
+            headers=swell_headers,
+            ssl=False,
+            timeout=15,
+        ) as response:
+            if response.status == 200:
+                response = await response.json()
+                if "points" in response:
+                    eigenlayer_points = response["points"]
+            else:
+                return False, address, f"Status code is {response.status}"
+
+        return (
+            True,
+            address,
+            {
+                "loyaltyPoints": loyality_points,
+                "eigenlayerPoints": eigenlayer_points,
+            },
+        )
+    except Exception as ex:
+        return False, address, f"Exception: {traceback.format_exc()}"
+
+
 async def get_points(addresses: list, proxies: list, without_proxies=False):
     async with aiohttp.ClientSession() as session:
         renzo_tasks = []
         etherfi_tasks = []
         puffer_tasks = []
         kelp_tasks = []
+        swell_tasks = []
 
         for i in range(len(addresses)):
-            renzo_tasks.append(renzo_points(session, addresses[i], proxies[i] if not without_proxies else None))
-            etherfi_tasks.append(etherfi_points(session, addresses[i], proxies[i] if not without_proxies else None))
-            puffer_tasks.append(puffer_points(session, addresses[i], proxies[i] if not without_proxies else None))
-            kelp_tasks.append(kelp_points(session, addresses[i], proxies[i] if not without_proxies else None))
+            renzo_tasks.append(
+                renzo_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
+            etherfi_tasks.append(
+                etherfi_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
+            puffer_tasks.append(
+                puffer_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
+            kelp_tasks.append(
+                kelp_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
+            swell_tasks.append(
+                swell_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
 
         renzo_results = await asyncio.gather(*renzo_tasks)
         etherfi_results = await asyncio.gather(*etherfi_tasks)
         puffer_results = await asyncio.gather(*puffer_tasks)
         kelp_results = await asyncio.gather(*kelp_tasks)
+        swell_results = await asyncio.gather(*swell_tasks)
 
-        return renzo_results, etherfi_results, puffer_results, kelp_results
+        return (
+            renzo_results,
+            etherfi_results,
+            puffer_results,
+            kelp_results,
+            swell_results,
+        )
 
 
 async def print_points(addresses: list, proxies: list, without_proxies=False):
-    renzo_results, etherfi_results, puffer_results, kelp_results = await get_points(
-        addresses, proxies, without_proxies
+    renzo_results, etherfi_results, puffer_results, kelp_results, swell_results = (
+        await get_points(addresses, proxies, without_proxies)
     )
 
     total_renzo_points = 0
     total_etherfi_points = 0
     total_puffer_points = 0
     total_kelp_points = 0
+    total_swell_points = 0
     total_eigen_points = 0
 
     for i in range(len(addresses)):
@@ -250,7 +345,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         if status:
             if data["loyaltyPoints"] > 0:
                 print(
-                    " 🩵 Puffer: {:,.0f} pts | EL {:,.0f} pts".format(
+                    " 🐡 Puffer: {:,.0f} pts | EL {:,.0f} pts".format(
                         data["loyaltyPoints"], data["eigenlayerPoints"]
                     )
                 )
@@ -272,13 +367,32 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         else:
             print(" ⛔️ Kelp: {}".format(data))
 
+        status, address, data = swell_results[i]
+        if status:
+            if data["loyaltyPoints"] > 0:
+                print(
+                    " 🩵 Swell: {:,.0f} pts | EL {:,.0f} pts".format(
+                        data["loyaltyPoints"], data["eigenlayerPoints"]
+                    )
+                )
+                total_swell_points += data["loyaltyPoints"]
+            eigen_points += data["eigenlayerPoints"]
+
         total_eigen_points += eigen_points
 
-    print("\n\n💚 Total Renzo Points: {:,.0f}".format(total_renzo_points))
-    print("💜 Total EtherFi Points: {:,.0f}".format(total_etherfi_points))
-    print("🩵 Total Puffer Points: {:,.0f}".format(total_puffer_points))
-    print("🩶 Total Kelp Points: {:,.0f}".format(total_kelp_points))
-    print("💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
+    print("\n📊 Totals:")
+    if total_renzo_points:
+        print(" 💚 Total Renzo Points: {:,.0f}".format(total_renzo_points))
+    if total_etherfi_points:
+        print(" 💜 Total EtherFi Points: {:,.0f}".format(total_etherfi_points))
+    if total_puffer_points:
+        print(" 🐡 Total Puffer Points: {:,.0f}".format(total_puffer_points))
+    if total_kelp_points:
+        print(" 🩶 Total Kelp Points: {:,.0f}".format(total_kelp_points))
+    if total_swell_points:
+        print(" 🩵 Total Swell Points: {:,.0f}".format(total_swell_points))
+    if total_eigen_points:
+        print(" 💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
 
 
 def read_proxies():
