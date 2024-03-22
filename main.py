@@ -187,6 +187,46 @@ async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str |
         return False, address, f"Exception: {traceback.format_exc()}"
 
 
+zircuit_headers = {
+    "authority": "stake.zircuit.com",
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "en-US,en;q=0.9,ru-RU;q=0.8,ru;q=0.7,uk;q=0.6,hr;q=0.5,fr;q=0.4",
+    "referer": "https://stake.zircuit.com/points",
+    "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+}
+
+
+async def zircuit_points(
+    session: aiohttp.ClientSession, address: str, proxy: str | None
+):
+    try:
+        async with session.get(
+            f"https://stake.zircuit.com/api/points/{address}",
+            proxy=f"http://{proxy}" if proxy else None,
+            headers=zircuit_headers,
+            ssl=False,
+            timeout=15,
+        ) as response:
+            if response.status == 200:
+                response = await response.json()
+
+                return (
+                    True,
+                    address,
+                    {"zircuitPoints": float(response["totalPoints"])},
+                )
+            else:
+                return False, address, f"Status code is {response.status}"
+    except Exception as ex:
+        return False, address, f"Exception: {traceback.format_exc()}"
+
+
 swell_headers = {
     "authority": "v3-lrt.svc.swellnetwork.io",
     "accept": "*/*",
@@ -255,6 +295,7 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         puffer_tasks = []
         kelp_tasks = []
         swell_tasks = []
+        zircuit_tasks = []
 
         for i in range(len(addresses)):
             renzo_tasks.append(
@@ -282,12 +323,18 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
                     session, addresses[i], proxies[i] if not without_proxies else None
                 )
             )
+            zircuit_tasks.append(
+                zircuit_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
 
         renzo_results = await asyncio.gather(*renzo_tasks)
         etherfi_results = await asyncio.gather(*etherfi_tasks)
         puffer_results = await asyncio.gather(*puffer_tasks)
         kelp_results = await asyncio.gather(*kelp_tasks)
         swell_results = await asyncio.gather(*swell_tasks)
+        zircuit_results = await asyncio.gather(*zircuit_tasks)
 
         return (
             renzo_results,
@@ -295,19 +342,26 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
             puffer_results,
             kelp_results,
             swell_results,
+            zircuit_results,
         )
 
 
 async def print_points(addresses: list, proxies: list, without_proxies=False):
-    renzo_results, etherfi_results, puffer_results, kelp_results, swell_results = (
-        await get_points(addresses, proxies, without_proxies)
-    )
+    (
+        renzo_results,
+        etherfi_results,
+        puffer_results,
+        kelp_results,
+        swell_results,
+        zircuit_results,
+    ) = await get_points(addresses, proxies, without_proxies)
 
     total_renzo_points = 0
     total_etherfi_points = 0
     total_puffer_points = 0
     total_kelp_points = 0
     total_swell_points = 0
+    total_zircuit_points = 0
     total_eigen_points = 0
 
     for i in range(len(addresses)):
@@ -378,6 +432,12 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
                 total_swell_points += data["loyaltyPoints"]
             eigen_points += data["eigenlayerPoints"]
 
+        status, address, data = zircuit_results[i]
+        if status:
+            if data["zircuitPoints"] > 0:
+                print(" 🐱 Zircuit: {:,.0f} pts".format(data["zircuitPoints"]))
+                total_zircuit_points += data["zircuitPoints"]
+
         total_eigen_points += eigen_points
 
     print("\n📊 Totals:")
@@ -391,6 +451,8 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         print(" 🩶 Total Kelp Points: {:,.0f}".format(total_kelp_points))
     if total_swell_points:
         print(" 🩵 Total Swell Points: {:,.0f}".format(total_swell_points))
+    if total_zircuit_points:
+        print(" 🐱 Total Zircuit Points: {:,.0f}".format(total_zircuit_points))
     if total_eigen_points:
         print(" 💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
 
