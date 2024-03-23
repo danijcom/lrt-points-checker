@@ -19,7 +19,7 @@ async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str 
             proxy=f"http://{proxy}" if proxy else None,
             headers=renzo_headers,
             ssl=False,
-            timeout=15,
+            timeout=20,
         ) as response:
             if response.status == 200:
                 response = await response.json()
@@ -127,8 +127,10 @@ async def puffer_points(
                     if isinstance(response["data"][defi], float):
                         loyality_points += response["data"][defi]
                     if isinstance(response["data"][defi], dict):
-                        if "balance" in response["data"][defi]:
-                            loyality_points += float(response["data"][defi]["balance"])
+                        if "latest_points" in response["data"][defi]:
+                            loyality_points += float(
+                                response["data"][defi]["latest_points"]
+                            )
 
                 eigenlayer_points = response["data"]["eigenlayer_points"]
 
@@ -440,12 +442,16 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
                 )
                 total_swell_points += data["loyaltyPoints"]
             eigen_points += data["eigenlayerPoints"]
+        else:
+            print(" ⛔️ Swell: {}".format(data))
 
         status, address, data = zircuit_results[i]
         if status:
             if data["zircuitPoints"] > 0:
                 print(" 🐱 Zircuit: {:,.0f} pts".format(data["zircuitPoints"]))
                 total_zircuit_points += data["zircuitPoints"]
+        else:
+            print(" ⛔️ Zircuit: {}".format(data))
 
         total_eigen_points += eigen_points
 
