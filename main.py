@@ -218,11 +218,15 @@ async def zircuit_points(
         ) as response:
             if response.status == 200:
                 response = await response.json()
+                points = 0
+
+                if isinstance(response, dict) and "totalPoints" in response:
+                    points = float(response["totalPoints"])
 
                 return (
                     True,
                     address,
-                    {"zircuitPoints": float(response["totalPoints"])},
+                    {"zircuitPoints": points},
                 )
             else:
                 return False, address, f"Status code is {response.status}"
