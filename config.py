@@ -7,3 +7,4 @@ protocols = {
     "zircuit": True,
     "ethena": True,
 }
+max_attempts = 3

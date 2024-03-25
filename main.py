@@ -13,7 +13,7 @@ renzo_headers = {
 }
 
 
-async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
+async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
             f"https://app.renzoprotocol.com/api/points/{address}",
@@ -31,7 +31,10 @@ async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str 
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await renzo_points(session, address, proxy, attempt=attempt + 1)
 
 
 etherfi_headers = {
@@ -44,9 +47,7 @@ etherfi_headers = {
 }
 
 
-async def etherfi_points(
-    session: aiohttp.ClientSession, address: str, proxy: str | None
-):
+async def etherfi_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
             f"https://app.ether.fi/api/portfolio/v2/{address}",
@@ -84,7 +85,10 @@ async def etherfi_points(
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await etherfi_points(session, address, proxy, attempt=attempt + 1)
 
 
 puffer_headers = {
@@ -103,9 +107,7 @@ puffer_headers = {
 }
 
 
-async def puffer_points(
-    session: aiohttp.ClientSession, address: str, proxy: str | None
-):
+async def puffer_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         headers = puffer_headers.copy()
         headers["address"] = address
@@ -129,9 +131,7 @@ async def puffer_points(
                         loyality_points += response["data"][defi]
                     if isinstance(response["data"][defi], dict):
                         if "latest_points" in response["data"][defi]:
-                            loyality_points += float(
-                                response["data"][defi]["latest_points"]
-                            )
+                            loyality_points += float(response["data"][defi]["latest_points"])
 
                 eigenlayer_points = response["data"]["eigenlayer_points"]
 
@@ -146,7 +146,10 @@ async def puffer_points(
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await puffer_points(session, address, proxy, attempt=attempt + 1)
 
 
 kelp_headers = {
@@ -165,7 +168,7 @@ kelp_headers = {
 }
 
 
-async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
+async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
             f"https://common.kelpdao.xyz/km-el-points/user/{address}",
@@ -188,7 +191,10 @@ async def kelp_points(session: aiohttp.ClientSession, address: str, proxy: str |
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await kelp_points(session, address, proxy, attempt=attempt + 1)
 
 
 zircuit_headers = {
@@ -206,9 +212,7 @@ zircuit_headers = {
 }
 
 
-async def zircuit_points(
-    session: aiohttp.ClientSession, address: str, proxy: str | None
-):
+async def zircuit_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
             f"https://stake.zircuit.com/api/points/{address}",
@@ -232,7 +236,10 @@ async def zircuit_points(
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await zircuit_points(session, address, proxy, attempt=attempt + 1)
 
 
 swell_headers = {
@@ -251,7 +258,7 @@ swell_headers = {
 }
 
 
-async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str | None):
+async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         loyality_points = 0
         eigenlayer_points = 0
@@ -293,7 +300,10 @@ async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str 
             },
         )
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await swell_points(session, address, proxy, attempt=attempt + 1)
 
 
 ethena_headers = {
@@ -312,9 +322,7 @@ ethena_headers = {
 }
 
 
-async def ethena_points(
-    session: aiohttp.ClientSession, address: str, proxy: str | None
-):
+async def ethena_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
             f"https://app.ethena.fi/api/referral/get-referree?address={address}",
@@ -325,10 +333,7 @@ async def ethena_points(
         ) as response:
             if response.status == 200:
                 response = await response.json()
-                if (
-                    isinstance(response, dict)
-                    and "accumulatedTotalShardsEarned" in response
-                ):
+                if isinstance(response, dict) and "accumulatedTotalShardsEarned" in response:
                     if isinstance(response["accumulatedTotalShardsEarned"], float):
                         return (
                             True,
@@ -346,7 +351,10 @@ async def ethena_points(
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
-        return False, address, f"Exception: {traceback.format_exc()}"
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await ethena_points(session, address, proxy, attempt=attempt + 1)
 
 
 async def get_points(addresses: list, proxies: list, without_proxies=False):
@@ -444,10 +452,12 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
             print(" Swell", end="")
         if config.protocols["zircuit"]:
             zircuit_results = await asyncio.gather(*zircuit_tasks)
-            print(" Zircuit")
+            print(" Zircuit", end="")
         if config.protocols["ethena"]:
             ethena_results = await asyncio.gather(*ethena_tasks)
-            print(" Ethena")
+            print(" Ethena", end="")
+
+        print()
 
         return (
             renzo_results,
@@ -490,9 +500,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
             if status:
                 if data["renzoPoints"] > 0:
                     print(
-                        " 💚 Renzo: {:,.0f} pts | EL {:,.0f} pts".format(
-                            data["renzoPoints"], data["eigenLayerPoints"]
-                        )
+                        " 💚 Renzo: {:,.0f} pts | EL {:,.0f} pts".format(data["renzoPoints"], data["eigenLayerPoints"])
                     )
                     total_renzo_points += data["renzoPoints"]
                 eigen_points += data["eigenLayerPoints"]
@@ -531,11 +539,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
             status, address, data = kelp_results[i]
             if status:
                 if data["kelpMiles"] > 0:
-                    print(
-                        " 🩶 Kelp: {:,.0f} pts | EL {:,.0f} pts".format(
-                            data["kelpMiles"], data["eigenlayerPoints"]
-                        )
-                    )
+                    print(" 🩶 Kelp: {:,.0f} pts | EL {:,.0f} pts".format(data["kelpMiles"], data["eigenlayerPoints"]))
                     total_kelp_points += data["kelpMiles"]
                 eigen_points += data["eigenlayerPoints"]
             else:
@@ -588,10 +592,10 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         print(" 🩵 Total Swell Points: {:,.0f}".format(total_swell_points))
     if total_zircuit_points:
         print(" 🐱 Total Zircuit Points: {:,.0f}".format(total_zircuit_points))
-    if total_eigen_points:
-        print(" 💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
     if total_ethena_points:
         print(" 🧊 Total Ethena Points: {:,.0f}".format(total_ethena_points))
+    if total_eigen_points:
+        print(" 💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
 
 
 def read_proxies():
@@ -629,11 +633,7 @@ if __name__ == "__main__":
         addresses = read_addresses()
 
         if len(addresses) > len(proxies):
-            print(
-                "⛔️ Not enough proxies ({}) for all addresses ({})".format(
-                    len(proxies), len(addresses)
-                )
-            )
+            print("⛔️ Not enough proxies ({}) for all addresses ({})".format(len(proxies), len(addresses)))
             result = input("❔ Continue without proxies? (y/n): ")
             if result.lower() != "y":
                 print("❌ Aborted")
@@ -641,11 +641,7 @@ if __name__ == "__main__":
                 print("📶 Loaded {} addresses".format(len(addresses)))
                 asyncio.run(print_points(addresses, proxies, without_proxies=True))
         else:
-            print(
-                "📶 Loaded {} proxies and {} addresses".format(
-                    len(proxies), len(addresses)
-                )
-            )
+            print("📶 Loaded {} proxies and {} addresses".format(len(proxies), len(addresses)))
             asyncio.run(print_points(addresses, proxies))
 
     print()
