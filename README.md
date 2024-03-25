@@ -21,7 +21,8 @@ python main.py
 - rename addresses_EXAMPLE.txt -> addresses.txt
 - put your addresses (NOT PRIVATE KEYS) to addresses.txt
 - rename proxies_EXAMPLE.txt -> proxies.txt
-- put your proxies in format user:password@IP:PORT to proxies.txt (or you can leave the proxy.txt file empty, and confirm the script will run without a proxy after launch, if you want. I don't know what the consequences might be) 
+- put your proxies in format user:password@IP:PORT to proxies.txt (or you can leave the proxy.txt file empty, and confirm the script will run without a proxy after launch if you want. I don't know what the consequences might be)
+- [optional] You can turn off not-needed protocols in the config.py by changing True to False.
 
 # 📊 Output example
 
