@@ -19,7 +19,7 @@ async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str 
             proxy=f"http://{proxy}" if proxy else None,
             headers=renzo_headers,
             ssl=False,
-            timeout=20,
+            timeout=25,
         ) as response:
             if response.status == 200:
                 response = await response.json()
@@ -295,6 +295,59 @@ async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str 
         return False, address, f"Exception: {traceback.format_exc()}"
 
 
+ethena_headers = {
+    "authority": "app.ethena.fi",
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ru-RU;q=0.8,ru;q=0.7,uk;q=0.6,hr;q=0.5,fr;q=0.4",
+    "cookie": "termsAccepted=true; added_USDe_to_wallet=true",
+    "referer": "https://app.ethena.fi/join",
+    "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122""',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+}
+
+
+async def ethena_points(
+    session: aiohttp.ClientSession, address: str, proxy: str | None
+):
+    try:
+        async with session.get(
+            f"https://app.ethena.fi/api/referral/get-referree?address={address}",
+            proxy=f"http://{proxy}" if proxy else None,
+            headers=ethena_headers,
+            ssl=False,
+            timeout=15,
+        ) as response:
+            if response.status == 200:
+                response = await response.json()
+                if (
+                    isinstance(response, dict)
+                    and "accumulatedTotalShardsEarned" in response
+                ):
+                    if isinstance(response["accumulatedTotalShardsEarned"], float):
+                        return (
+                            True,
+                            address,
+                            {"ethenaPoints": response["accumulatedTotalShardsEarned"]},
+                        )
+                    else:
+                        return (
+                            True,
+                            address,
+                            {"ethenaPoints": 0},
+                        )
+                else:
+                    return False, address, response
+            else:
+                return False, address, f"Status code is {response.status}"
+    except Exception as ex:
+        return False, address, f"Exception: {traceback.format_exc()}"
+
+
 async def get_points(addresses: list, proxies: list, without_proxies=False):
     async with aiohttp.ClientSession() as session:
         renzo_tasks = []
@@ -303,6 +356,7 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         kelp_tasks = []
         swell_tasks = []
         zircuit_tasks = []
+        ethena_tasks = []
 
         for i in range(len(addresses)):
             renzo_tasks.append(
@@ -335,6 +389,11 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
                     session, addresses[i], proxies[i] if not without_proxies else None
                 )
             )
+            ethena_tasks.append(
+                ethena_points(
+                    session, addresses[i], proxies[i] if not without_proxies else None
+                )
+            )
 
         print("🔄 Getting points:", end="")
 
@@ -350,6 +409,8 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         print(" Swell", end="")
         zircuit_results = await asyncio.gather(*zircuit_tasks)
         print(" Zircuit")
+        ethena_results = await asyncio.gather(*ethena_tasks)
+        print(" Ethena")
 
         return (
             renzo_results,
@@ -358,6 +419,7 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
             kelp_results,
             swell_results,
             zircuit_results,
+            ethena_results,
         )
 
 
@@ -369,6 +431,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         kelp_results,
         swell_results,
         zircuit_results,
+        ethena_results,
     ) = await get_points(addresses, proxies, without_proxies)
 
     total_renzo_points = 0
@@ -378,6 +441,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
     total_swell_points = 0
     total_zircuit_points = 0
     total_eigen_points = 0
+    total_ethena_points = 0
 
     for i in range(len(addresses)):
         eigen_points = 0
@@ -457,6 +521,14 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         else:
             print(" ⛔️ Zircuit: {}".format(data))
 
+        status, address, data = ethena_results[i]
+        if status:
+            if data["ethenaPoints"] > 0:
+                print(" 🧊 Ethena: {:,.0f} pts".format(data["ethenaPoints"]))
+                total_ethena_points += data["ethenaPoints"]
+        else:
+            print(" ⛔️ Ethena: {}".format(data))
+
         total_eigen_points += eigen_points
 
     print("\n📊 Totals:")
@@ -474,6 +546,8 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         print(" 🐱 Total Zircuit Points: {:,.0f}".format(total_zircuit_points))
     if total_eigen_points:
         print(" 💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
+    if total_ethena_points:
+        print(" 🧊 Total Ethena Points: {:,.0f}".format(total_ethena_points))
 
 
 def read_proxies():
