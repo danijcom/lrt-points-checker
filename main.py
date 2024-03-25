@@ -2,6 +2,7 @@ import os.path
 import traceback
 import asyncio
 import aiohttp
+import config
 
 renzo_headers = {
     "authority": "app.renzoprotocol.com",
@@ -359,58 +360,94 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         ethena_tasks = []
 
         for i in range(len(addresses)):
-            renzo_tasks.append(
-                renzo_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["renzo"]:
+                renzo_tasks.append(
+                    renzo_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
-            etherfi_tasks.append(
-                etherfi_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["etherfi"]:
+                etherfi_tasks.append(
+                    etherfi_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
-            puffer_tasks.append(
-                puffer_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["puffer"]:
+                puffer_tasks.append(
+                    puffer_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
-            kelp_tasks.append(
-                kelp_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["kelp"]:
+                kelp_tasks.append(
+                    kelp_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
-            swell_tasks.append(
-                swell_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["swell"]:
+                swell_tasks.append(
+                    swell_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
-            zircuit_tasks.append(
-                zircuit_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["zircuit"]:
+                zircuit_tasks.append(
+                    zircuit_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
-            ethena_tasks.append(
-                ethena_points(
-                    session, addresses[i], proxies[i] if not without_proxies else None
+            if config.protocols["ethena"]:
+                ethena_tasks.append(
+                    ethena_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
                 )
-            )
 
         print("🔄 Getting points:", end="")
 
-        renzo_results = await asyncio.gather(*renzo_tasks)
-        print(" Renzo", end="")
-        etherfi_results = await asyncio.gather(*etherfi_tasks)
-        print(" EtherFi", end="")
-        puffer_results = await asyncio.gather(*puffer_tasks)
-        print(" Puffer", end="")
-        kelp_results = await asyncio.gather(*kelp_tasks)
-        print(" Kelp", end="")
-        swell_results = await asyncio.gather(*swell_tasks)
-        print(" Swell", end="")
-        zircuit_results = await asyncio.gather(*zircuit_tasks)
-        print(" Zircuit")
-        ethena_results = await asyncio.gather(*ethena_tasks)
-        print(" Ethena")
+        renzo_results = []
+        etherfi_results = []
+        puffer_results = []
+        kelp_results = []
+        swell_results = []
+        zircuit_results = []
+        ethena_results = []
+
+        if config.protocols["renzo"]:
+            renzo_results = await asyncio.gather(*renzo_tasks)
+            print(" Renzo", end="")
+        if config.protocols["etherfi"]:
+            etherfi_results = await asyncio.gather(*etherfi_tasks)
+            print(" EtherFi", end="")
+        if config.protocols["puffer"]:
+            puffer_results = await asyncio.gather(*puffer_tasks)
+            print(" Puffer", end="")
+        if config.protocols["kelp"]:
+            kelp_results = await asyncio.gather(*kelp_tasks)
+            print(" Kelp", end="")
+        if config.protocols["swell"]:
+            swell_results = await asyncio.gather(*swell_tasks)
+            print(" Swell", end="")
+        if config.protocols["zircuit"]:
+            zircuit_results = await asyncio.gather(*zircuit_tasks)
+            print(" Zircuit")
+        if config.protocols["ethena"]:
+            ethena_results = await asyncio.gather(*ethena_tasks)
+            print(" Ethena")
 
         return (
             renzo_results,
@@ -448,86 +485,93 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
 
         print("\n{}".format(addresses[i]))
 
-        status, address, data = renzo_results[i]
-        if status:
-            if data["renzoPoints"] > 0:
-                print(
-                    " 💚 Renzo: {:,.0f} pts | EL {:,.0f} pts".format(
-                        data["renzoPoints"], data["eigenLayerPoints"]
+        if renzo_results:
+            status, address, data = renzo_results[i]
+            if status:
+                if data["renzoPoints"] > 0:
+                    print(
+                        " 💚 Renzo: {:,.0f} pts | EL {:,.0f} pts".format(
+                            data["renzoPoints"], data["eigenLayerPoints"]
+                        )
                     )
-                )
-                total_renzo_points += data["renzoPoints"]
-            eigen_points += data["eigenLayerPoints"]
-        else:
-            print(" ⛔️ Renzo: {}".format(data))
+                    total_renzo_points += data["renzoPoints"]
+                eigen_points += data["eigenLayerPoints"]
+            else:
+                print(" ⛔️ Renzo: {}".format(data))
 
-        status, address, data = etherfi_results[i]
-        if status:
-            if data["loyaltyPoints"] > 0:
-                print(
-                    " 💜 EtherFi: {:,.0f} pts | EL {:,.0f} pts".format(
-                        data["loyaltyPoints"], data["eigenlayerPoints"]
+        if etherfi_results:
+            status, address, data = etherfi_results[i]
+            if status:
+                if data["loyaltyPoints"] > 0:
+                    print(
+                        " 💜 EtherFi: {:,.0f} pts | EL {:,.0f} pts".format(
+                            data["loyaltyPoints"], data["eigenlayerPoints"]
+                        )
                     )
-                )
-                total_etherfi_points += data["loyaltyPoints"]
-            eigen_points += data["eigenlayerPoints"]
-        else:
-            print(" ⛔️ EtherFi: {}".format(data))
+                    total_etherfi_points += data["loyaltyPoints"]
+                eigen_points += data["eigenlayerPoints"]
+            else:
+                print(" ⛔️ EtherFi: {}".format(data))
 
-        status, address, data = puffer_results[i]
-        if status:
-            if data["loyaltyPoints"] > 0:
-                print(
-                    " 🐡 Puffer: {:,.0f} pts | EL {:,.0f} pts".format(
-                        data["loyaltyPoints"], data["eigenlayerPoints"]
+        if puffer_results:
+            status, address, data = puffer_results[i]
+            if status:
+                if data["loyaltyPoints"] > 0:
+                    print(
+                        " 🐡 Puffer: {:,.0f} pts | EL {:,.0f} pts".format(
+                            data["loyaltyPoints"], data["eigenlayerPoints"]
+                        )
                     )
-                )
-                total_puffer_points += data["loyaltyPoints"]
-            eigen_points += data["eigenlayerPoints"]
-        else:
-            print(" ⛔️ Puffer: {}".format(data))
+                    total_puffer_points += data["loyaltyPoints"]
+                eigen_points += data["eigenlayerPoints"]
+            else:
+                print(" ⛔️ Puffer: {}".format(data))
 
-        status, address, data = kelp_results[i]
-        if status:
-            if data["kelpMiles"] > 0:
-                print(
-                    " 🩶 Kelp: {:,.0f} pts | EL {:,.0f} pts".format(
-                        data["kelpMiles"], data["eigenlayerPoints"]
+        if kelp_results:
+            status, address, data = kelp_results[i]
+            if status:
+                if data["kelpMiles"] > 0:
+                    print(
+                        " 🩶 Kelp: {:,.0f} pts | EL {:,.0f} pts".format(
+                            data["kelpMiles"], data["eigenlayerPoints"]
+                        )
                     )
-                )
-                total_kelp_points += data["kelpMiles"]
-            eigen_points += data["eigenlayerPoints"]
-        else:
-            print(" ⛔️ Kelp: {}".format(data))
+                    total_kelp_points += data["kelpMiles"]
+                eigen_points += data["eigenlayerPoints"]
+            else:
+                print(" ⛔️ Kelp: {}".format(data))
 
-        status, address, data = swell_results[i]
-        if status:
-            if data["loyaltyPoints"] > 0:
-                print(
-                    " 🩵 Swell: {:,.0f} pts | EL {:,.0f} pts".format(
-                        data["loyaltyPoints"], data["eigenlayerPoints"]
+        if swell_results:
+            status, address, data = swell_results[i]
+            if status:
+                if data["loyaltyPoints"] > 0:
+                    print(
+                        " 🩵 Swell: {:,.0f} pts | EL {:,.0f} pts".format(
+                            data["loyaltyPoints"], data["eigenlayerPoints"]
+                        )
                     )
-                )
-                total_swell_points += data["loyaltyPoints"]
-            eigen_points += data["eigenlayerPoints"]
-        else:
-            print(" ⛔️ Swell: {}".format(data))
+                    total_swell_points += data["loyaltyPoints"]
+                eigen_points += data["eigenlayerPoints"]
+            else:
+                print(" ⛔️ Swell: {}".format(data))
 
-        status, address, data = zircuit_results[i]
-        if status:
-            if data["zircuitPoints"] > 0:
-                print(" 🐱 Zircuit: {:,.0f} pts".format(data["zircuitPoints"]))
-                total_zircuit_points += data["zircuitPoints"]
-        else:
-            print(" ⛔️ Zircuit: {}".format(data))
+        if zircuit_results:
+            status, address, data = zircuit_results[i]
+            if status:
+                if data["zircuitPoints"] > 0:
+                    print(" 🐱 Zircuit: {:,.0f} pts".format(data["zircuitPoints"]))
+                    total_zircuit_points += data["zircuitPoints"]
+            else:
+                print(" ⛔️ Zircuit: {}".format(data))
 
-        status, address, data = ethena_results[i]
-        if status:
-            if data["ethenaPoints"] > 0:
-                print(" 🧊 Ethena: {:,.0f} pts".format(data["ethenaPoints"]))
-                total_ethena_points += data["ethenaPoints"]
-        else:
-            print(" ⛔️ Ethena: {}".format(data))
+        if ethena_results:
+            status, address, data = ethena_results[i]
+            if status:
+                if data["ethenaPoints"] > 0:
+                    print(" 🧊 Ethena: {:,.0f} pts".format(data["ethenaPoints"]))
+                    total_ethena_points += data["ethenaPoints"]
+            else:
+                print(" ⛔️ Ethena: {}".format(data))
 
         total_eigen_points += eigen_points
 
