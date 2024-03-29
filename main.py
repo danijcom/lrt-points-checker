@@ -333,19 +333,20 @@ async def ethena_points(session: aiohttp.ClientSession, address: str, proxy: str
         ) as response:
             if response.status == 200:
                 response = await response.json()
-                if isinstance(response, dict) and "accumulatedTotalShardsEarned" in response:
-                    if isinstance(response["accumulatedTotalShardsEarned"], float):
-                        return (
-                            True,
-                            address,
-                            {"ethenaPoints": response["accumulatedTotalShardsEarned"]},
-                        )
-                    else:
-                        return (
-                            True,
-                            address,
-                            {"ethenaPoints": 0},
-                        )
+                if isinstance(response, dict) and "queryWallet" in response:
+                    if len(response["queryWallet"]) == 1:
+                        if "accumulatedTotalShardsEarned" in response["queryWallet"][0]:
+                            if isinstance(response["queryWallet"][0]["accumulatedTotalShardsEarned"], float):
+                                return (
+                                    True,
+                                    address,
+                                    {"ethenaPoints": response["queryWallet"][0]["accumulatedTotalShardsEarned"]},
+                                )
+                    return (
+                        True,
+                        address,
+                        {"ethenaPoints": 0},
+                    )
                 else:
                     return False, address, response
             else:
