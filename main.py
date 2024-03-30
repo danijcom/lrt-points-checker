@@ -50,7 +50,7 @@ etherfi_headers = {
 async def etherfi_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
-            f"https://app.ether.fi/api/portfolio/v2/{address}",
+            f"https://app.ether.fi/api/portfolio/v3/{address}",
             proxy=f"http://{proxy}" if proxy else None,
             headers=etherfi_headers,
             ssl=False,
@@ -59,20 +59,25 @@ async def etherfi_points(session: aiohttp.ClientSession, address: str, proxy: st
             if response.status == 200:
                 response = await response.json()
 
-                loyaltyPoints = response["loyaltyPoints"]
-                eigenlayerPoints = response["eigenlayerPoints"]
+                loyaltyPoints = 0
+                eigenlayerPoints = 0
 
-                for defi in response:
-                    if defi == "pendle":
-                        continue
-                    if isinstance(response[defi], dict):
-                        if "loyaltyPoints" in response[defi]:
-                            loyaltyPoints += response[defi]["loyaltyPoints"]
-                        if "eigenlayerPoints" in response[defi]:
-                            loyaltyPoints += response[defi]["eigenlayerPoints"]
-                # for bage in response["badges"]:
-                #    if "points" in bage:
-                #        loyaltyPoints += float(bage["points"])
+                if "referrals" in response:
+                    loyaltyPoints += response["referrals"]["total"]
+                    # print("Referrals: ", response["referrals"]["total"])
+
+                if "totalIntegrationLoyaltyPoints" in response:
+                    loyaltyPoints += response["totalIntegrationLoyaltyPoints"]
+
+                for badge in response["badges"]:
+                    if "points" in badge:
+                        # print("Badge: ", badge["name"], " Points: ", badge["points"])
+                        loyaltyPoints += float(badge["points"])
+
+                if "totalIntegrationEigenLayerPoints" in response:
+                    eigenlayerPoints = response["totalIntegrationEigenLayerPoints"]
+                if "bonusEigenLayerPoints" in response:
+                    eigenlayerPoints += response["bonusEigenLayerPoints"]
 
                 return (
                     True,
