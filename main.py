@@ -16,7 +16,7 @@ renzo_headers = {
 async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
-            f"https://app.renzoprotocol.com/api/points/{address}",
+            f"https://app.renzoprotocol.com/api/points/{address}?chainId=1",
             proxy=f"http://{proxy}" if proxy else None,
             headers=renzo_headers,
             ssl=False,
@@ -24,6 +24,7 @@ async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str 
         ) as response:
             if response.status == 200:
                 response = await response.json()
+                # print(response)
                 if response["success"]:
                     return True, address, response["data"]["totals"]
                 else:
@@ -31,6 +32,7 @@ async def renzo_points(session: aiohttp.ClientSession, address: str, proxy: str 
             else:
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
+        # print(ex)
         if attempt == config.max_attempts:
             return False, address, f"Exception: {traceback.format_exc()}"
         else:
