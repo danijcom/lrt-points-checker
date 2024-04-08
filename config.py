@@ -6,5 +6,6 @@ protocols = {
     "swell": True,
     "zircuit": True,
     "ethena": True,
+    "karak": True,
 }
 max_attempts = 3
