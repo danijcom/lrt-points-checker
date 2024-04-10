@@ -385,7 +385,7 @@ karak_headers = {
 async def karak_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
     try:
         async with session.get(
-            f"https://restaking-backend.karak.network/getXP,getTvl?batch=1&input=%7B%220%22%3A%7B%22wallet%22%3A%22{address}%22%7D%7D",
+            f"https://restaking-backend.karak.network/getXP?batch=1&input=%7B%220%22%3A%7B%22wallet%22%3A%22{address}%22%7D%7D",
             proxy=f"http://{proxy}" if proxy else None,
             headers=karak_headers,
             ssl=False,
@@ -396,7 +396,7 @@ async def karak_points(session: aiohttp.ClientSession, address: str, proxy: str 
                 if isinstance(response, list) and len(response) > 0:
                     response = response[0]
                     if "result" in response:
-                        if "data" in response["result"] and response["result"]["data"].isdigit():
+                        if "data" in response["result"]:
                             return True, address, {"karakPoints": float(response["result"]["data"])}
                     return True, address, {"karakPoints": 0}
                 else:
