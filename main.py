@@ -402,7 +402,7 @@ async def karak_points(session: aiohttp.ClientSession, address: str, proxy: str 
                 else:
                     return False, address, response
             else:
-                if response.status == 207:
+                if response.status == 207 or response.status == 404:
                     return True, address, {"karakPoints": 0}
                 return False, address, f"Status code is {response.status}"
     except Exception as ex:
