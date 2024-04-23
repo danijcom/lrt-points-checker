@@ -250,18 +250,17 @@ async def zircuit_points(session: aiohttp.ClientSession, address: str, proxy: st
 
 
 swell_headers = {
-    "authority": "v3-lrt.svc.swellnetwork.io",
     "accept": "*/*",
     "accept-language": "en-US,en;q=0.9,ru-RU;q=0.8,ru;q=0.7,uk;q=0.6,hr;q=0.5,fr;q=0.4",
     "origin": "https://app.swellnetwork.io",
     "referer": "https://app.swellnetwork.io/portfolio",
-    "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    "sec-ch-ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"',
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-site",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
 }
 
 
@@ -271,7 +270,7 @@ async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str 
         eigenlayer_points = 0
 
         async with session.get(
-            f"https://v3.svc.swellnetwork.io/swell.v3.VoyageService/VoyageUser?connect=v1&encoding=json&message=%7B%22address%22%3A%22{address}%22%7D",
+            "https://v3-lst.svc.swellnetwork.io/swell.v3.VoyageService/VoyageUser?connect=v1&encoding=json&message=%7B%22address%22%3A%22{address}%22%7D",
             proxy=f"http://{proxy}" if proxy else None,
             headers=swell_headers,
             ssl=False,
@@ -285,7 +284,7 @@ async def swell_points(session: aiohttp.ClientSession, address: str, proxy: str 
                 return False, address, f"Status code is {response.status}"
 
         async with session.get(
-            f"https://v3-lrt.svc.swellnetwork.io/swell.v3.EigenPointsService/EigenPointsUser?connect=v1&encoding=json&message=%7B%22address%22%3A%22{address}%22%7D",
+            f"https://v3-lst.svc.swellnetwork.io/swell.v3.EigenPointsService/EigenPointsUser?connect=v1&encoding=json&message=%7B%22address%22%3A%22{address}%22%7D",
             proxy=f"http://{proxy}" if proxy else None,
             headers=swell_headers,
             ssl=False,
@@ -344,6 +343,12 @@ async def ethena_points(session: aiohttp.ClientSession, address: str, proxy: str
                     if len(response["queryWallet"]) == 1:
                         if "accumulatedTotalShardsEarned" in response["queryWallet"][0]:
                             if isinstance(response["queryWallet"][0]["accumulatedTotalShardsEarned"], float):
+                                return (
+                                    True,
+                                    address,
+                                    {"ethenaPoints": response["queryWallet"][0]["accumulatedTotalShardsEarned"]},
+                                )
+                            elif isinstance(response["queryWallet"][0]["accumulatedTotalShardsEarned"], int):
                                 return (
                                     True,
                                     address,
