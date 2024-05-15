@@ -417,6 +417,49 @@ async def karak_points(session: aiohttp.ClientSession, address: str, proxy: str 
             return await karak_points(session, address, proxy, attempt=attempt + 1)
 
 
+scroll_headers = {
+    "Accept": "*/*",
+    "Accept-Language": "ru,en-US;q=0.9,en;q=0.8",
+    "Connection": "keep-alive",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Content-Type": "application/json",
+    "sec-ch-ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+}
+
+
+async def scroll_points(session: aiohttp.ClientSession, address: str, proxy: str | None, attempt=0):
+    try:
+        async with session.get(
+            f"https://kx58j6x5me.execute-api.us-east-1.amazonaws.com/scroll/bridge-balances?walletAddress={address}",
+            proxy=f"http://{proxy}" if proxy else None,
+            headers=scroll_headers,
+            ssl=False,
+            timeout=15,
+        ) as response:
+            if response.status == 200:
+                response = await response.json(content_type=None)
+                if isinstance(response, list) and len(response) > 0:
+                    points = 0
+                    for item in response:
+                        if "points" in item:
+                            points += float(item["points"])
+                    return True, address, {"scrollPoints": points}
+                else:
+                    return False, address, {"scrollPoints": 0}
+            else:
+                return False, address, f"Status code is {response.status}"
+    except Exception as ex:
+        if attempt == config.max_attempts:
+            return False, address, f"Exception: {traceback.format_exc()}"
+        else:
+            return await scroll_points(session, address, proxy, attempt=attempt + 1)
+
+
 async def get_points(addresses: list, proxies: list, without_proxies=False):
     async with aiohttp.ClientSession() as session:
         renzo_tasks = []
@@ -427,6 +470,7 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         zircuit_tasks = []
         ethena_tasks = []
         karak_tasks = []
+        scroll_tasks = []
 
         for i in range(len(addresses)):
             if config.protocols["renzo"]:
@@ -493,6 +537,14 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
                         proxies[i] if not without_proxies else None,
                     )
                 )
+            if config.protocols["scroll"]:
+                scroll_tasks.append(
+                    scroll_points(
+                        session,
+                        addresses[i],
+                        proxies[i] if not without_proxies else None,
+                    )
+                )
 
         print("🔄 Getting points:", end="")
 
@@ -504,6 +556,7 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         zircuit_results = []
         ethena_results = []
         karak_results = []
+        scroll_results = []
 
         if config.protocols["renzo"]:
             renzo_results = await asyncio.gather(*renzo_tasks)
@@ -529,6 +582,9 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
         if config.protocols["karak"]:
             karak_results = await asyncio.gather(*karak_tasks)
             print(" Karak", end="")
+        if config.protocols["scroll"]:
+            scroll_results = await asyncio.gather(*scroll_tasks)
+            print(" Scroll", end="")
 
         print()
 
@@ -541,6 +597,7 @@ async def get_points(addresses: list, proxies: list, without_proxies=False):
             zircuit_results,
             ethena_results,
             karak_results,
+            scroll_results,
         )
 
 
@@ -554,6 +611,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         zircuit_results,
         ethena_results,
         karak_results,
+        scroll_results,
     ) = await get_points(addresses, proxies, without_proxies)
 
     total_renzo_points = 0
@@ -565,6 +623,7 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
     total_eigen_points = 0
     total_ethena_points = 0
     total_karak_points = 0
+    total_scroll_points = 0
 
     for i in range(len(addresses)):
         eigen_points = 0
@@ -662,6 +721,15 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
             else:
                 print(" ⛔️ Karak: {}".format(data))
 
+        if scroll_results:
+            status, address, data = scroll_results[i]
+            if status:
+                if data["scrollPoints"] > 0:
+                    print(" 📜 Scroll: {:,.0f} pts".format(data["scrollPoints"]))
+                    total_scroll_points += data["scrollPoints"]
+            else:
+                print(" ⛔️ Scroll: {}".format(data))
+
         total_eigen_points += eigen_points
 
     print("\n📊 Totals:")
@@ -681,6 +749,8 @@ async def print_points(addresses: list, proxies: list, without_proxies=False):
         print(" 🧊 Total Ethena Points: {:,.0f}".format(total_ethena_points))
     if total_karak_points:
         print(" 🌟 Total Karak Points: {:,.0f}".format(total_karak_points))
+    if total_scroll_points:
+        print(" 📜 Total Scroll Points: {:,.0f}".format(total_scroll_points))
     if total_eigen_points:
         print(" 💙 Total EigenLayer Points: {:,.0f}".format(total_eigen_points))
 
