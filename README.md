@@ -1,5 +1,5 @@
 # Ethereum LRT protocols points checker
- Small script to gather all your Ethereum LRT points from different wallets. 
+ Small script to gather all your Ethereum LRT points from different addresses (no private keys required). 
  
  Currently, only [ether.fi](https://app.ether.fi/portfolio), [renzo](https://app.renzoprotocol.com/portfolio), [puffer](https://quest.puffer.fi/), [swell](https://app.swellnetwork.io/), [zircuit](https://stake.zircuit.com/), [Ethena](https://www.ethena.fi/), [Karak](https://app.karak.network/) and [kelp](https://kelpdao.xyz/dashboard/) are supported
  
